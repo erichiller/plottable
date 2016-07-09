@@ -43,6 +43,15 @@ If you run into any problems using Plottable, please let us know. We want Plotta
   - ``~/.npm/`` by running ``sudo chown -R "$(whoami)" ~/.npm/``
 - Navigate to `http://localhost:9999/quicktests/` and choose a directory to view visual tests
 
+### Eric's notes
+
+Build source into javacript with `grunt src-compile`
+  
+Install as dependency into project locally with `npm install --save ../plottabledir`  
+This will put the built version into `node_modules`
+
+
+
 ## Contributing
 
 - Write your code

@@ -99,6 +99,7 @@ namespace Plottable.Plots {
               } else {
                 return yScale.scale(currentSubtotal);
               }
+              
             }
             let priorSubtotal = this._subtotals[i - 1];
             if (currentSubtotal > priorSubtotal) {
