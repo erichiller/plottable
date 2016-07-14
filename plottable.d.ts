@@ -3944,8 +3944,14 @@ declare namespace Plottable.Plots {
                     };
                 }
         **/
-        scaleX(valueIn?: any): any;
-        pathMaker(datum: any, index: number, dataset: Dataset): any;
+        pointSetX(d: any, index: number, dataset: Dataset): number;
+        /**
+         * pointSetY is easy, it just returns the y parameter from the pre-processed pointSet
+         * @return {number} point coordinate of y
+         */
+        pointSetY(d: any, index: number, dataset: Dataset): number;
+        scaleX(valueIn?: any): number;
+        pointSet(d: any, index: number, dataset: Dataset): any;
         /**
          * Gets the Entities that intersect the Bounds.
          *

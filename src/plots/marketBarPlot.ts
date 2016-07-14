@@ -30,7 +30,12 @@ namespace Plottable.Plots {
 		protected _propertyProjectors(): AttributeToProjector {
 			let attrToProjector = super._propertyProjectors();
 			attrToProjector["d"] = (datum: any, index: number, ds: Dataset) => {
-				this.pathMaker(datum, index, ds);
+				// @param {array} of x,y coordinates x6 for each dataset element
+				let pointSet = this.pointSet(datum, index, ds);
+				d3.svg.line()
+					.x((innerDatum, innerIndex) => this.pointSetX(innerDatum, innerIndex, pointSet))
+					.y((innerDatum, innerIndex) => this.pointSetY(innerDatum, innerIndex, pointSet))
+					.interpolate("linear");
 			};
 			return attrToProjector;
 		}
@@ -51,15 +56,27 @@ namespace Plottable.Plots {
 				}
 		**/
 
+		pointSetX(d: any, index: number, dataset: Dataset): number {
+			return this.scaleX((d.x));
+		}
+
+		/**
+		 * pointSetY is easy, it just returns the y parameter from the pre-processed pointSet
+		 * @return {number} point coordinate of y 
+		 */
+		pointSetY(d: any, index: number, dataset: Dataset): number {
+			return d.y;
+		}
+
 
 
 		// can do x(xScale) to set scale and y(yScale)
 		// & x() and y() to get scales still
 		// default scale is:
-		scaleX(valueIn?: any) {
+		scaleX(valueIn?: any):number {
 			let xScale: Plots.AccessorScaleBinding<any, any> = this._propertyBindings.get(MarketBar.X_SCALE_KEY);
 			if (!xScale) {
-				this._bindProperty(MarketBar.X_SCALE_KEY, (d: any, i: number, ds: Dataset) => this.pathMaker, new Plottable.Scales.Time());
+				this._bindProperty(MarketBar.X_SCALE_KEY, (d: any, i: number, ds: Dataset) => this.pointSetX, new Plottable.Scales.Time());
 				xScale = this._propertyBindings.get(MarketBar.X_SCALE_KEY);
 			}
 			if (valueIn) {
@@ -67,56 +84,42 @@ namespace Plottable.Plots {
 			}
 		}
 
-
-		public pathMaker(datum: any, index: number, dataset: Dataset): any {
-
-			let ds = dataset.data();
-			for (let i = 0; i < ds.length; i++) {
-				let d = ds[i];
-				if (i == 0) {
-					var ret = "M";
-				} else {
-					ret += "L";
-				};
-				/** 
-				 * HOW TO SCALE???
-				 */
-				let x: any;
-				let y: any;
-				switch (i) {
-					case 0:
-						// tick start 12h (1/2 day) to the left.
-						x = new Date( new Date().setDate( new Date().getDate() - .5 ) )
-						y = d.open;
-						break;
-					case 1:
-						x = d.date;
-						y = d.open;
-						break;
-					case 2:
-						x = d.date;
-						y = d.low;
-						break;
-					case 3:
-						x = d.date;
-						y = d.high;
-						break;
-					case 4:
-						x = d.date;
-						y = d.close;
-						break;
-					case 5:
-						// tick start 12h (1/2 day) to the right.
-						x = new Date( new Date().setDate( new Date().getDate() + .5 ) )
-						y = d.close;
-						break;
+		public pointSet(d: any, index: number, dataset: Dataset): any {
+			let pointSet: {
+				x: any,
+				y: any
+			}[] = [
+				{
+					// tick start 12h (1/2 day) to the left.
+					x: new Date( new Date().setDate( new Date().getDate() - .5 ) ),
+					y: d.open
+				},
+				{
+					x: d.date,
+					y: d.open
+				},
+				{
+					x: d.date,
+					y: d.low
+				},
+				{
+					x: d.date,
+					y: d.high
+				},
+				{
+					x: d.date,
+					y: d.close
+				},
+				{
+					// tick start 12h (1/2 day) to the right.
+					x: new Date( new Date().setDate( new Date().getDate() + .5 ) ),
+					y: d.close
 				}
-				ret += `${x},${y}`;
-			}
-			for (let item of ds) {
+			];
+			for (let item of pointSet) {
 				console.log(item);
 			}
-			return ret;
+			return pointSet;
 		}
 
 

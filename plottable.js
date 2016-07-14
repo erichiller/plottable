@@ -10091,7 +10091,12 @@ var Plottable;
                 var _this = this;
                 var attrToProjector = _super.prototype._propertyProjectors.call(this);
                 attrToProjector["d"] = function (datum, index, ds) {
-                    _this.pathMaker(datum, index, ds);
+                    // @param {array} of x,y coordinates x6 for each dataset element
+                    var pointSet = _this.pointSet(datum, index, ds);
+                    d3.svg.line()
+                        .x(function (innerDatum, innerIndex) { return _this.pointSetX(innerDatum, innerIndex, pointSet); })
+                        .y(function (innerDatum, innerIndex) { return _this.pointSetY(innerDatum, innerIndex, pointSet); })
+                        .interpolate("linear");
                 };
                 return attrToProjector;
             };
@@ -10111,6 +10116,16 @@ var Plottable;
                         };
                     }
             **/
+            MarketBar.prototype.pointSetX = function (d, index, dataset) {
+                return this.scaleX((d.x));
+            };
+            /**
+             * pointSetY is easy, it just returns the y parameter from the pre-processed pointSet
+             * @return {number} point coordinate of y
+             */
+            MarketBar.prototype.pointSetY = function (d, index, dataset) {
+                return d.y;
+            };
             // can do x(xScale) to set scale and y(yScale)
             // & x() and y() to get scales still
             // default scale is:
@@ -10118,64 +10133,47 @@ var Plottable;
                 var _this = this;
                 var xScale = this._propertyBindings.get(MarketBar.X_SCALE_KEY);
                 if (!xScale) {
-                    this._bindProperty(MarketBar.X_SCALE_KEY, function (d, i, ds) { return _this.pathMaker; }, new Plottable.Scales.Time());
+                    this._bindProperty(MarketBar.X_SCALE_KEY, function (d, i, ds) { return _this.pointSetX; }, new Plottable.Scales.Time());
                     xScale = this._propertyBindings.get(MarketBar.X_SCALE_KEY);
                 }
                 if (valueIn) {
                     return xScale.scale.scale(valueIn);
                 }
             };
-            MarketBar.prototype.pathMaker = function (datum, index, dataset) {
-                var ds = dataset.data();
-                for (var i = 0; i < ds.length; i++) {
-                    var d = ds[i];
-                    if (i == 0) {
-                        var ret = "M";
+            MarketBar.prototype.pointSet = function (d, index, dataset) {
+                var pointSet = [
+                    {
+                        // tick start 12h (1/2 day) to the left.
+                        x: new Date(new Date().setDate(new Date().getDate() - .5)),
+                        y: d.open
+                    },
+                    {
+                        x: d.date,
+                        y: d.open
+                    },
+                    {
+                        x: d.date,
+                        y: d.low
+                    },
+                    {
+                        x: d.date,
+                        y: d.high
+                    },
+                    {
+                        x: d.date,
+                        y: d.close
+                    },
+                    {
+                        // tick start 12h (1/2 day) to the right.
+                        x: new Date(new Date().setDate(new Date().getDate() + .5)),
+                        y: d.close
                     }
-                    else {
-                        ret += "L";
-                    }
-                    ;
-                    /**
-                     * HOW TO SCALE???
-                     */
-                    var x = void 0;
-                    var y = void 0;
-                    switch (i) {
-                        case 0:
-                            // tick start 12h (1/2 day) to the left.
-                            x = new Date(new Date().setDate(new Date().getDate() - .5));
-                            y = d.open;
-                            break;
-                        case 1:
-                            x = d.date;
-                            y = d.open;
-                            break;
-                        case 2:
-                            x = d.date;
-                            y = d.low;
-                            break;
-                        case 3:
-                            x = d.date;
-                            y = d.high;
-                            break;
-                        case 4:
-                            x = d.date;
-                            y = d.close;
-                            break;
-                        case 5:
-                            // tick start 12h (1/2 day) to the right.
-                            x = new Date(new Date().setDate(new Date().getDate() + .5));
-                            y = d.close;
-                            break;
-                    }
-                    ret += x + "," + y;
-                }
-                for (var _i = 0, ds_1 = ds; _i < ds_1.length; _i++) {
-                    var item = ds_1[_i];
+                ];
+                for (var _i = 0, pointSet_1 = pointSet; _i < pointSet_1.length; _i++) {
+                    var item = pointSet_1[_i];
                     console.log(item);
                 }
-                return ret;
+                return pointSet;
             };
             MarketBar.prototype.entitiesIn = function (xRangeOrBounds, yRange) {
                 var dataXRange;
