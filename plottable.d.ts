@@ -3915,12 +3915,10 @@ declare namespace Plottable.Plots {
     }
 }
 declare namespace Plottable.Plots {
-    class MarketBar<X, Y> extends XYPlot<X, Y> {
-        private static _TICK_WIDTH_PIXELS;
-        private static _TICK_CLASS;
-        private static _TICK_STROKE;
-        private _drawArea;
-        private _extent;
+    class MarketBar extends Plot {
+        /** pixel size - width/length of ticks off main bar for open/close of day */
+        static X_SCALE_KEY: string;
+        static Y_SCALE_KEY: string;
         /**
          * A Market Bar Plot draws vertical lines
          * from the high of the day to the low of the day
@@ -3928,91 +3926,26 @@ declare namespace Plottable.Plots {
          * and a horizontal right tick indicating the close
          */
         constructor();
-        protected _createDrawer(dataset: Dataset): Drawers.Segment;
-        protected _createNodesForDataset(dataset: Dataset): Drawer;
-        protected _updateExtentsForProperty(property: string): void;
-        protected _filterForProperty(property: string): (datum: any, index: number, dataset: Dataset) => boolean;
-        protected _generateDrawSteps(): Drawers.DrawStep[];
-        protected _additionalPaint(time: number): void;
-        /**
-         * Gets the AccessorScaleBinding for X
-         */
-        x(): AccessorScaleBinding<X, number>;
-        /**
-         * Sets X to a constant value or the result of an Accessor.
-         *
-         * @param {X|Accessor<X>} x
-         * @returns {Plots.Segment} The calling Segment Plot.
-         */
-        x(x: number | Accessor<number>): this;
-        /**
-         * Sets X to a scaled constant value or scaled result of an Accessor.
-         * The provided Scale will account for the values when autoDomain()-ing.
-         *
-         * @param {X|Accessor<X>} x
-         * @param {Scale<X, number>} xScale
-         * @returns {Plots.Segment} The calling Segment Plot.
-         */
-        x(x: X | Accessor<X>, xScale: Scale<X, number>): this;
-        /**
-         * Gets the AccessorScaleBinding for Y
-         */
-        y(): AccessorScaleBinding<Y, number>;
-        /**
-         * Sets Y to a constant value or the result of an Accessor.
-         *
-         * @param {Y|Accessor<Y>} y
-         * @returns {Plots.Segment} The calling Segment Plot.
-         */
-        y(y: number | Accessor<number>): this;
-        /**
-         * Sets Y to a scaled constant value or scaled result of an Accessor.
-         * The provided Scale will account for the values when autoDomain()-ing.
-         *
-         * @param {Y|Accessor<Y>} y
-         * @param {Scale<Y, number>} yScale
-         * @returns {Plots.Segment} The calling Segment Plot.
-         */
-        y(y: Y | Accessor<Y>, yScale: Scale<Y, number>): this;
-        /**
-         * Gets the AccessorScaleBinding for Y2.
-         */
-        y2(): AccessorScaleBinding<Y, number>;
-        /**
-         * Sets Y2 to a constant number or the result of an Accessor.
-         * If a Scale has been set for Y, it will also be used to scale Y2.
-         *
-         * @param {number|Accessor<number>|Y|Accessor<Y>} y2
-         * @returns {Plots.Segment} The calling Segment Plot.
-         */
-        y2(y2: number | Accessor<number> | Y | Accessor<Y>): this;
-        /**
-         * Gets the AccessorScaleBinding for y3.
-         */
-        y3(): AccessorScaleBinding<Y, number>;
-        /**
-         * Sets y3 to a constant number or the result of an Accessor.
-         * If a Scale has been set for Y, it will also be used to scale y3.
-         *
-         * @param {number|Accessor<number>|Y|Accessor<Y>} y3
-         * @returns {Plots.Segment} The calling Segment Plot.
-         */
-        y3(y3: number | Accessor<number> | Y | Accessor<Y>): this;
-        /**
-         * Gets the AccessorScaleBinding for y4.
-         */
-        y4(): AccessorScaleBinding<Y, number>;
-        /**
-         * Sets y4 to a constant number or the result of an Accessor.
-         * If a Scale has been set for Y, it will also be used to scale y4.
-         *
-         * @param {number|Accessor<number>|Y|Accessor<Y>} y4
-         * @returns {Plots.Segment} The calling Segment Plot.
-         */
-        y4(y4: number | Accessor<number> | Y | Accessor<Y>): this;
+        protected _createDrawer(dataset: Dataset): Drawers.Line;
         protected _propertyProjectors(): AttributeToProjector;
-        private _drawTicks();
-        tickWidth(): number;
+        /**
+                protected _constructAreaProjector(xProjector: Projector, yProjector: Projector) {
+                    let definedProjector = (d: any, i: number, dataset: Dataset) => {
+                        let positionX = Plot._scaledAccessor(this.x())(d, i, dataset);
+                        let positionY = Plot._scaledAccessor(this.y())(d, i, dataset);
+                        return Utils.Math.isValidNumber(positionX) && Utils.Math.isValidNumber(positionY);
+                    };
+                    return (datum: any[], index: number, dataset: Dataset) => {
+                        return d3.svg.line()
+                            .x((innerDatum, innerIndex) => xProjector(innerDatum, innerIndex, dataset))
+                            .y((innerDatum, innerIndex) => yProjector(innerDatum, innerIndex, dataset))
+                            .interpolate("linear")
+                            .defined((innerDatum, innerIndex) => definedProjector(innerDatum, innerIndex, dataset))(datum);
+                    };
+                }
+        **/
+        scaleX(valueIn?: any): any;
+        pathMaker(datum: any, index: number, dataset: Dataset): any;
         /**
          * Gets the Entities that intersect the Bounds.
          *

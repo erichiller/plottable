@@ -10077,156 +10077,105 @@ var Plottable;
              */
             function MarketBar() {
                 _super.call(this);
-                // ???? guessing this means css class
                 this.addClass("marketbar-plot");
                 this.attr("stroke", new Plottable.Scales.Color().range()[0]);
                 this.attr("stroke-width", 4);
+                this.attr("fill", "none");
+                //this.TICK_WIDTH = this.scaleX(MarketBar.TICK_WIDTH_STATIC);
             }
             MarketBar.prototype._createDrawer = function (dataset) {
-                return new Plottable.Drawers.Segment(dataset);
+                return new Plottable.Drawers.Line(dataset);
             };
-            MarketBar.prototype._createNodesForDataset = function (dataset) {
-                var drawer = _super.prototype._createNodesForDataset.call(this, dataset);
-                this._drawArea = this._renderArea.append("g").classed(MarketBar._TICK_CLASS, true);
-                return drawer;
-            };
-            MarketBar.prototype._updateExtentsForProperty = function (property) {
-                _super.prototype._updateExtentsForProperty.call(this, property);
-                if (property === "y") {
-                    _super.prototype._updateExtentsForProperty.call(this, "y2");
-                    _super.prototype._updateExtentsForProperty.call(this, "y3");
-                    _super.prototype._updateExtentsForProperty.call(this, "y4");
-                }
-            };
-            MarketBar.prototype._filterForProperty = function (property) {
-                switch (property) {
-                    case "y2":
-                    case "y3":
-                    case "y4":
-                        return _super.prototype._filterForProperty.call(this, "y");
-                }
-                return _super.prototype._filterForProperty.call(this, property);
-            };
-            MarketBar.prototype._generateDrawSteps = function () {
-                var drawSteps = [];
-                drawSteps.push({ attrToProjector: this._generateAttrToProjector(), animator: this._getAnimator(Plots.Animator.MAIN) });
-                return drawSteps;
-            };
-            MarketBar.prototype._additionalPaint = function (time) {
-                var _this = this;
-                this._drawArea.selectAll("line").remove();
-                Plottable.Utils.Window.setTimeout(function () { return _this._drawTicks(); }, time);
-            };
-            MarketBar.prototype.x = function (x, xScale) {
-                if (x == null) {
-                    return _super.prototype.x.call(this);
-                }
-                if (xScale == null) {
-                    _super.prototype.x.call(this, x);
-                }
-                else {
-                    _super.prototype.x.call(this, x, xScale);
-                }
-                // as the only x... do I need this.render(); ?????
-                return this;
-            };
-            MarketBar.prototype.y = function (y, yScale) {
-                if (y == null) {
-                    return _super.prototype.y.call(this);
-                }
-                if (yScale == null) {
-                    _super.prototype.y.call(this, y);
-                }
-                else {
-                    _super.prototype.y.call(this, y, yScale);
-                    var y2Binding = this.y2();
-                    var y2 = y2Binding && y2Binding.accessor;
-                    if (y2 != null) {
-                        this._bindProperty("y2", y2, yScale);
-                    }
-                }
-                return this;
-            };
-            MarketBar.prototype.y2 = function (y2) {
-                if (y2 == null) {
-                    return this._propertyBindings.get("y2");
-                }
-                var yBinding = this.y();
-                var yScale = yBinding && yBinding.scale;
-                this._bindProperty("y2", y2, yScale);
-                //      this.render();
-                return this;
-            };
-            MarketBar.prototype.y3 = function (y3) {
-                if (y3 == null) {
-                    return this._propertyBindings.get("y3");
-                }
-                var yBinding = this.y();
-                var yScale = yBinding && yBinding.scale;
-                this._bindProperty("y3", y3, yScale);
-                //      this.render();
-                return this;
-            };
-            MarketBar.prototype.y4 = function (y4) {
-                if (y4 == null) {
-                    return this._propertyBindings.get("y4");
-                }
-                var yBinding = this.y();
-                var yScale = yBinding && yBinding.scale;
-                this._bindProperty("y4", y4, yScale);
-                this.render();
-                return this;
-            };
+            //is this per element or for the whole plot?
             MarketBar.prototype._propertyProjectors = function () {
+                var _this = this;
                 var attrToProjector = _super.prototype._propertyProjectors.call(this);
-                attrToProjector["x1"] = Plottable.Plot._scaledAccessor(this.x());
-                attrToProjector["x2"] = this.x() == null ? Plottable.Plot._scaledAccessor(this.x()) : Plottable.Plot._scaledAccessor(this.x());
-                attrToProjector["y1"] = Plottable.Plot._scaledAccessor(this.y());
-                attrToProjector["y2"] = this.y2() == null ? Plottable.Plot._scaledAccessor(this.y()) : Plottable.Plot._scaledAccessor(this.y2());
-                //attrToProjector["y3"] = this.y3() == null ? Plot._scaledAccessor(this.y()) : Plot._scaledAccessor(this.y3());
-                //attrToProjector["y4"] = this.y4() == null ? Plot._scaledAccessor(this.y()) : Plot._scaledAccessor(this.y4());
-                attrToProjector["y3"] = Plottable.Plot._scaledAccessor(this.y3());
-                attrToProjector["y4"] = Plottable.Plot._scaledAccessor(this.y4());
-                /**
-                      let resetAttrToProjector = this._generateAttrToProjector();
-                
-                      drawSteps.push({attrToProjector: resetAttrToProjector, animator: this._getAnimator(Plots.Animator.RESET)});
-                
-                      this.attr("stroke", new Scales.Color().range()[0]);
-                      this.attr("stroke-width", "2px");
-                
-                      attrToProjector["x3"] = Plot._scaledAccessor(this.x());
-                      attrToProjector["y3"] = this.y3() == null ? Plot._scaledAccessor(this.y()) : Plot._scaledAccessor(this.y3());
-                
-                      attrToProjector["x4"] = Plot._scaledAccessor(this.x());
-                      attrToProjector["y4"] = this.y4() == null ? Plot._scaledAccessor(this.y()) : Plot._scaledAccessor(this.y4());
-                      **/
+                attrToProjector["d"] = function (datum, index, ds) {
+                    _this.pathMaker(datum, index, ds);
+                };
                 return attrToProjector;
             };
-            MarketBar.prototype._drawTicks = function () {
-                var attrToProjector = this._generateAttrToProjector();
-                var dataset = this.datasets()[0];
-                for (var datumIndex = 0; datumIndex < dataset.data().length; datumIndex++) {
-                    // ???? OR USE STROKE WIDTH ????
-                    var datum = dataset.data()[datumIndex];
-                    var x = attrToProjector["x1"](datum, datumIndex, dataset) + attrToProjector["stroke-width"](datum, datumIndex, dataset);
-                    var y3 = attrToProjector["y3"](datum, datumIndex, dataset);
-                    var y4 = attrToProjector["y4"](datum, datumIndex, dataset);
-                    var xn = x - this.tickWidth();
-                    var xp = x + this.tickWidth();
-                    this._drawArea.append("line").classed(MarketBar._TICK_CLASS, true)
-                        .attr("x1", x).attr("x2", xn).attr("y1", y3).attr("y2", y3)
-                        .attr("stroke-width", MarketBar._TICK_STROKE)
-                        .attr("stroke", "blue");
-                    this._drawArea.append("line").classed(MarketBar._TICK_CLASS, true)
-                        .attr("x1", x).attr("x2", xp).attr("y1", y4).attr("y2", y4)
-                        .attr("stroke-width", MarketBar._TICK_STROKE)
-                        .attr("stroke", "orange");
+            /**
+                    protected _constructAreaProjector(xProjector: Projector, yProjector: Projector) {
+                        let definedProjector = (d: any, i: number, dataset: Dataset) => {
+                            let positionX = Plot._scaledAccessor(this.x())(d, i, dataset);
+                            let positionY = Plot._scaledAccessor(this.y())(d, i, dataset);
+                            return Utils.Math.isValidNumber(positionX) && Utils.Math.isValidNumber(positionY);
+                        };
+                        return (datum: any[], index: number, dataset: Dataset) => {
+                            return d3.svg.line()
+                                .x((innerDatum, innerIndex) => xProjector(innerDatum, innerIndex, dataset))
+                                .y((innerDatum, innerIndex) => yProjector(innerDatum, innerIndex, dataset))
+                                .interpolate("linear")
+                                .defined((innerDatum, innerIndex) => definedProjector(innerDatum, innerIndex, dataset))(datum);
+                        };
+                    }
+            **/
+            // can do x(xScale) to set scale and y(yScale)
+            // & x() and y() to get scales still
+            // default scale is:
+            MarketBar.prototype.scaleX = function (valueIn) {
+                var _this = this;
+                var xScale = this._propertyBindings.get(MarketBar.X_SCALE_KEY);
+                if (!xScale) {
+                    this._bindProperty(MarketBar.X_SCALE_KEY, function (d, i, ds) { return _this.pathMaker; }, new Plottable.Scales.Time());
+                    xScale = this._propertyBindings.get(MarketBar.X_SCALE_KEY);
                 }
-                this.render();
+                if (valueIn) {
+                    return xScale.scale.scale(valueIn);
+                }
             };
-            MarketBar.prototype.tickWidth = function () {
-                return MarketBar._TICK_WIDTH_PIXELS;
+            MarketBar.prototype.pathMaker = function (datum, index, dataset) {
+                var ds = dataset.data();
+                for (var i = 0; i < ds.length; i++) {
+                    var d = ds[i];
+                    if (i == 0) {
+                        var ret = "M";
+                    }
+                    else {
+                        ret += "L";
+                    }
+                    ;
+                    /**
+                     * HOW TO SCALE???
+                     */
+                    var x = void 0;
+                    var y = void 0;
+                    switch (i) {
+                        case 0:
+                            // tick start 12h (1/2 day) to the left.
+                            x = new Date(new Date().setDate(new Date().getDate() - .5));
+                            y = d.open;
+                            break;
+                        case 1:
+                            x = d.date;
+                            y = d.open;
+                            break;
+                        case 2:
+                            x = d.date;
+                            y = d.low;
+                            break;
+                        case 3:
+                            x = d.date;
+                            y = d.high;
+                            break;
+                        case 4:
+                            x = d.date;
+                            y = d.close;
+                            break;
+                        case 5:
+                            // tick start 12h (1/2 day) to the right.
+                            x = new Date(new Date().setDate(new Date().getDate() + .5));
+                            y = d.close;
+                            break;
+                    }
+                    ret += x + "," + y;
+                }
+                for (var _i = 0, ds_1 = ds; _i < ds_1.length; _i++) {
+                    var item = ds_1[_i];
+                    console.log(item);
+                }
+                return ret;
             };
             MarketBar.prototype.entitiesIn = function (xRangeOrBounds, yRange) {
                 var dataXRange;
@@ -10291,11 +10240,12 @@ var Plottable;
                 // point3 and point4 are on different sides of line formed by point1 and point2
                 return calcOrientation(point1, point2, point3) * calcOrientation(point1, point2, point4) < 0;
             };
-            MarketBar._TICK_WIDTH_PIXELS = 5;
-            MarketBar._TICK_CLASS = "marketBarTick";
-            MarketBar._TICK_STROKE = 2;
+            /** pixel size - width/length of ticks off main bar for open/close of day */
+            //private TICK_WIDTH;
+            MarketBar.X_SCALE_KEY = "xscale";
+            MarketBar.Y_SCALE_KEY = "yscale";
             return MarketBar;
-        }(Plottable.XYPlot));
+        }(Plottable.Plot));
         Plots.MarketBar = MarketBar;
     })(Plots = Plottable.Plots || (Plottable.Plots = {}));
 })(Plottable || (Plottable = {}));
