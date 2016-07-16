@@ -3916,10 +3916,24 @@ declare namespace Plottable.Plots {
     }
 }
 declare namespace Plottable.Plots {
-    class MarketBar extends Plot {
+    class MarketBar<X, Y> extends Plot {
         /** pixel size - width/length of ticks off main bar for open/close of day */
         static X_SCALE_KEY: string;
         static Y_SCALE_KEY: string;
+        static _X_KEY: string;
+        static _Y_KEY: string;
+        _renderBounds: {
+            x: {
+                min: number;
+                max: number;
+            };
+            y: {
+                min: number;
+                max: number;
+            };
+        };
+        _renderMaxX: number;
+        _renderMaxY: number;
         /**
          * A Market Bar Plot draws vertical lines
          * from the high of the day to the low of the day
@@ -3945,13 +3959,61 @@ declare namespace Plottable.Plots {
                     };
                 }
         **/
-        pointSetX(d: any, index: number, dataset: Dataset): number;
         /**
-         * pointSetY is easy, it just returns the y parameter from the pre-processed pointSet
-         * @return {number} point coordinate of y
+ * Gets the AccessorScaleBinding for X.
+ */
+        /**
+         * Sets X to a constant number or the result of an Accessor<number>.
+         *
+         * @param {number|Accessor<number>} x
+         * @returns {XYPlot} The calling XYPlot.
          */
-        pointSetY(d: any, index: number, dataset: Dataset): number;
+        /**
+         * Sets X to a scaled constant value or scaled result of an Accessor.
+         * The provided Scale will account for the values when autoDomain()-ing.
+         *
+         * @param {X|Accessor<X>} x
+         * @param {Scale<X, number>} xScale
+         * @returns {XYPlot} The calling XYPlot.
+         */
+        /**
+          public x(x: X | Accessor<X>, xScale: Scale<X, number>): this;
+          public x(x?: number | Accessor<number> | X | Accessor<X>, xScale?: Scale<X, number>): any {
+            if (!xScale) {
+                this._bindProperty(MarketBar.X_SCALE_KEY, (d: any, i: number, ds: Dataset) =>
+                    function(d: any, i: any, ds: Dataset): number {
+                        
+                    }, new Plottable.Scales.Time())  ;
+                xScale = this._propertyBindings.get(MarketBar.X_SCALE_KEY);
+            }
+            this._bindProperty(MarketBar._X_KEY, x, xScale);
+        
+            return this;
+          }
+          **/
+        /**
+         * Gets the AccessorScaleBinding for Y.
+         */
+        y(): Plots.AccessorScaleBinding<Y, number>;
+        /**
+         * Sets Y to a constant number or the result of an Accessor<number>.
+         *
+         * @param {number|Accessor<number>} y
+         * @returns {XYPlot} The calling XYPlot.
+         */
+        y(y: number | Accessor<number>): this;
+        /**
+         * Sets Y to a scaled constant value or scaled result of an Accessor.
+         * The provided Scale will account for the values when autoDomain()-ing.
+         *
+         * @param {Y|Accessor<Y>} y
+         * @param {Scale<Y, number>} yScale
+         * @returns {XYPlot} The calling XYPlot.
+         */
+        y(y: Y | Accessor<Y>, yScale: Scale<Y, number>): this;
         scaleX(valueIn?: any): number;
+        mathTimeDate(hours: number, date: Date): Date;
+        d(d: any, index: number, dataset: Dataset): any;
         pointSet(d: any, index: number, dataset: Dataset): any;
         /**
          * Gets the Entities that intersect the Bounds.

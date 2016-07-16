@@ -10077,6 +10077,8 @@ var Plottable;
              */
             function MarketBar() {
                 _super.call(this);
+                this._renderMaxX = 0;
+                this._renderMaxY = 0;
                 this.addClass("marketbar-plot");
                 this.attr("stroke", new Plottable.Scales.Color().range()[0]);
                 this.attr("stroke-width", 4);
@@ -10091,54 +10093,61 @@ var Plottable;
                 var _this = this;
                 var attrToProjector = _super.prototype._propertyProjectors.call(this);
                 attrToProjector["d"] = function (datum, index, ds) {
-                    // @param {array} of x,y coordinates x6 for each dataset element
-                    var pointSet = _this.pointSet(datum, index, ds);
-                    d3.svg.line()
-                        .x(function (innerDatum, innerIndex) { return _this.pointSetX(innerDatum, innerIndex, pointSet); })
-                        .y(function (innerDatum, innerIndex) { return _this.pointSetY(innerDatum, innerIndex, pointSet); })
-                        .interpolate("linear");
+                    var path = _this.d(datum, index, ds);
+                    return path;
                 };
+                this._propertyBindings.get(MarketBar.X_SCALE_KEY).scale.range([new Date()]);
                 return attrToProjector;
             };
-            /**
-                    protected _constructAreaProjector(xProjector: Projector, yProjector: Projector) {
-                        let definedProjector = (d: any, i: number, dataset: Dataset) => {
-                            let positionX = Plot._scaledAccessor(this.x())(d, i, dataset);
-                            let positionY = Plot._scaledAccessor(this.y())(d, i, dataset);
-                            return Utils.Math.isValidNumber(positionX) && Utils.Math.isValidNumber(positionY);
-                        };
-                        return (datum: any[], index: number, dataset: Dataset) => {
-                            return d3.svg.line()
-                                .x((innerDatum, innerIndex) => xProjector(innerDatum, innerIndex, dataset))
-                                .y((innerDatum, innerIndex) => yProjector(innerDatum, innerIndex, dataset))
-                                .interpolate("linear")
-                                .defined((innerDatum, innerIndex) => definedProjector(innerDatum, innerIndex, dataset))(datum);
-                        };
-                    }
-            **/
-            MarketBar.prototype.pointSetX = function (d, index, dataset) {
-                return this.scaleX((d.x));
+            MarketBar.prototype.y = function (y, yScale) {
+                if (y == null) {
+                    return this._propertyBindings.get(MarketBar._Y_KEY);
+                }
+                this._bindProperty(MarketBar._Y_KEY, y, yScale);
+                return this;
             };
-            /**
-             * pointSetY is easy, it just returns the y parameter from the pre-processed pointSet
-             * @return {number} point coordinate of y
-             */
-            MarketBar.prototype.pointSetY = function (d, index, dataset) {
-                return d.y;
-            };
-            // can do x(xScale) to set scale and y(yScale)
-            // & x() and y() to get scales still
-            // default scale is:
             MarketBar.prototype.scaleX = function (valueIn) {
                 var _this = this;
                 var xScale = this._propertyBindings.get(MarketBar.X_SCALE_KEY);
                 if (!xScale) {
-                    this._bindProperty(MarketBar.X_SCALE_KEY, function (d, i, ds) { return _this.pointSetX; }, new Plottable.Scales.Time());
+                    this._bindProperty(MarketBar.X_SCALE_KEY, function (d, i, ds) { return _this.scaleX(d.x); }, new Plottable.Scales.Time());
                     xScale = this._propertyBindings.get(MarketBar.X_SCALE_KEY);
                 }
                 if (valueIn) {
                     return xScale.scale.scale(valueIn);
                 }
+            };
+            MarketBar.prototype.mathTimeDate = function (hours, date) {
+                var days = 0;
+                var minutes = 0;
+                var subtime = (days * 24 * 60 * 60 * 1000) +
+                    (hours * 60 * 60 * 1000) +
+                    (minutes * 60 * 1000);
+                var resultTime = new Date(date.getTime() + subtime);
+                return resultTime;
+            };
+            MarketBar.prototype.d = function (d, index, dataset) {
+                var path = "M" +
+                    // tick start 12h (1/2 day) to the left.
+                    this.scaleX(this.mathTimeDate(-12, d.date)) + "," +
+                    d.open +
+                    "L" +
+                    this.scaleX(d.date) + "," +
+                    d.open +
+                    "L" +
+                    this.scaleX(d.date) + "," +
+                    d.low +
+                    "L" +
+                    this.scaleX(d.date) + "," +
+                    d.high +
+                    "L" +
+                    this.scaleX(d.date) + "," +
+                    d.close +
+                    "L" +
+                    // tick start 12h (1/2 day) to the right.
+                    this.scaleX(this.mathTimeDate(12, d.date)) + "," +
+                    d.close;
+                return path;
             };
             MarketBar.prototype.pointSet = function (d, index, dataset) {
                 var pointSet = [
@@ -10242,6 +10251,8 @@ var Plottable;
             //private TICK_WIDTH;
             MarketBar.X_SCALE_KEY = "xscale";
             MarketBar.Y_SCALE_KEY = "yscale";
+            MarketBar._X_KEY = "x";
+            MarketBar._Y_KEY = "y";
             return MarketBar;
         }(Plottable.Plot));
         Plots.MarketBar = MarketBar;

@@ -17,26 +17,13 @@ namespace Plottable.Plots {
 }
 
 namespace Plottable {
-/**
- * Computing the selection of an entity is an expensive operation. This object aims to
- * reproduce the behavior of the Plots.PlotEntity, excluding the selection, but including
- * drawer and validDatumIndex, which can be used to compute the selection.
- */
-interface LightweightPlotEntity {
-  datum: any;
-  position: Point;
-  dataset: Dataset;
-  index: number;
-  component: Plot;
-  drawer: Plottable.Drawer;
-  validDatumIndex: number;
-}
+
 
 export class Plot extends Component {
   protected static _ANIMATION_MAX_DURATION = 600;
 
   private _dataChanged = false;
-  private _datasetToDrawer: Utils.Map<Dataset, Drawer>;
+  protected _datasetToDrawer: Utils.Map<Dataset, Drawer>;
 
   protected _renderArea: d3.Selection<void>;
   private _attrBindings: d3.Map<Plots.AccessorScaleBinding<any, any>>;
@@ -484,7 +471,7 @@ export class Plot extends Component {
     return this._lightweightEntities(datasets).map((entity) => this._lightweightPlotEntityToPlotEntity(entity));
   }
 
-  private _lightweightEntities(datasets = this.datasets()) {
+  protected _lightweightEntities(datasets = this.datasets()) {
     let lightweightEntities: LightweightPlotEntity[] = [];
     datasets.forEach((dataset) => {
       let drawer = this._datasetToDrawer.get(dataset);
