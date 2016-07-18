@@ -2,7 +2,7 @@
 namespace Plottable.Plots {
 
 
-	export class MarketBar<X, Y> extends Plot {
+	export class MarketBar<X, Y> extends XYPlot<Date, number> {
 
 		/** pixel size - width/length of ticks off main bar for open/close of day */
 		//private TICK_WIDTH;
@@ -10,21 +10,11 @@ namespace Plottable.Plots {
 		static X_SCALE_KEY = "xscale";
 		static Y_SCALE_KEY = "yscale";
 
-		static _X_KEY = "x";
-		static _Y_KEY = "y";
 
-		_renderBounds: {
-			x: {
-				min: number,
-				max: number
-			},
-			y: {
-				min: number,
-				max: number
-			}
-		};
-		_renderMaxX: number = 0;
-		_renderMaxY: number = 0;
+
+		//static _X_KEY = "x";
+		//static _Y_KEY = "y";
+
 		/**
 		 * A Market Bar Plot draws vertical lines 
 		 * from the high of the day to the low of the day
@@ -37,162 +27,57 @@ namespace Plottable.Plots {
 			this.attr("stroke", new Scales.Color().range()[0]);
 			this.attr("stroke-width", 4);
 			this.attr("fill", "none");
-			//this.TICK_WIDTH = this.scaleX(MarketBar.TICK_WIDTH_STATIC);
+
+			// default values
+
+			//this.x(function (d,index,dataset) { console.log(`from d.x(${d.x}=>`,d); return d.x; }, new Plottable.Scales.Time());
+			//this.y(function (d,index,dataset) { console.log(`from d.y(${d.y}=>`,d); return d.y; }, new Plottable.Scales.Linear());
 		}
 
 		protected _createDrawer(dataset: Dataset) {
 			return new Plottable.Drawers.Line(dataset);
 		}
 
-		//is this per element or for the whole plot?
 		protected _propertyProjectors(): AttributeToProjector {
-			let attrToProjector = super._propertyProjectors();
-			attrToProjector["d"] = (datum: any, index: number, ds: Dataset) => {
-				let path = this.d(datum, index, ds);
-				return path;
-			}
-			<Scale<X, any>>this._propertyBindings.get(MarketBar.X_SCALE_KEY).scale.range([new Date()]);
-			return attrToProjector;
-		}
-		/**
-				protected _constructAreaProjector(xProjector: Projector, yProjector: Projector) {
-					let definedProjector = (d: any, i: number, dataset: Dataset) => {
-						let positionX = Plot._scaledAccessor(this.x())(d, i, dataset);
-						let positionY = Plot._scaledAccessor(this.y())(d, i, dataset);
-						return Utils.Math.isValidNumber(positionX) && Utils.Math.isValidNumber(positionY);
-					};
-					return (datum: any[], index: number, dataset: Dataset) => {
-						return d3.svg.line()
-							.x((innerDatum, innerIndex) => xProjector(innerDatum, innerIndex, dataset))
-							.y((innerDatum, innerIndex) => yProjector(innerDatum, innerIndex, dataset))
-							.interpolate("linear")
-							.defined((innerDatum, innerIndex) => definedProjector(innerDatum, innerIndex, dataset))(datum);
-					};
-				}
-		**/
-
-		/**
- * Gets the AccessorScaleBinding for X.
- */
-		//  public x(): Plots.AccessorScaleBinding<X, number>;
-		/**
-		 * Sets X to a constant number or the result of an Accessor<number>.
-		 *
-		 * @param {number|Accessor<number>} x
-		 * @returns {XYPlot} The calling XYPlot.
-		 */
-		//  public x(x: number | Accessor<number>): this;
-		/**
-		 * Sets X to a scaled constant value or scaled result of an Accessor.
-		 * The provided Scale will account for the values when autoDomain()-ing.
-		 *
-		 * @param {X|Accessor<X>} x
-		 * @param {Scale<X, number>} xScale
-		 * @returns {XYPlot} The calling XYPlot.
-		 */
-		/**
-		  public x(x: X | Accessor<X>, xScale: Scale<X, number>): this;
-		  public x(x?: number | Accessor<number> | X | Accessor<X>, xScale?: Scale<X, number>): any {
-			if (!xScale) {
-				this._bindProperty(MarketBar.X_SCALE_KEY, (d: any, i: number, ds: Dataset) => 
-					function(d: any, i: any, ds: Dataset): number {
-						
-					}, new Plottable.Scales.Time())  ;
-				xScale = this._propertyBindings.get(MarketBar.X_SCALE_KEY);
-			}
-			this._bindProperty(MarketBar._X_KEY, x, xScale);
-		
-			return this;
-		  }
-		  **/
-
-		/**
-		 * Gets the AccessorScaleBinding for Y.
-		 */
-		public y(): Plots.AccessorScaleBinding<Y, number>;
-		/**
-		 * Sets Y to a constant number or the result of an Accessor<number>.
-		 *
-		 * @param {number|Accessor<number>} y
-		 * @returns {XYPlot} The calling XYPlot.
-		 */
-		public y(y: number | Accessor<number>): this;
-		/**
-		 * Sets Y to a scaled constant value or scaled result of an Accessor.
-		 * The provided Scale will account for the values when autoDomain()-ing.
-		 *
-		 * @param {Y|Accessor<Y>} y
-		 * @param {Scale<Y, number>} yScale
-		 * @returns {XYPlot} The calling XYPlot.
-		 */
-		public y(y: Y | Accessor<Y>, yScale: Scale<Y, number>): this;
-		public y(y?: number | Accessor<number> | Y | Accessor<Y>, yScale?: Scale<Y, number>): any {
-			if (y == null) {
-				return this._propertyBindings.get(MarketBar._Y_KEY);
-			}
-
-			this._bindProperty(MarketBar._Y_KEY, y, yScale);
-
-			return this;
+			let propertyToProjectors = super._propertyProjectors();
+			propertyToProjectors["d"] = this._constructLineProjector(Plot._scaledAccessor(this.x()), Plot._scaledAccessor(this.y()));
+			return propertyToProjectors;
 		}
 
+		protected _constructLineProjector(xProjector: Projector, yProjector: Projector) {
 
+			return (datum: any, index: number, dataset: Dataset) => {
+				let dsPoints = new Dataset(this.dayToPoints(datum, index, dataset));
+				let line = d3.svg.line()
+					.x((innerDatum, innerIndex) => xProjector(innerDatum, innerIndex, dsPoints))
+					.y((innerDatum, innerIndex) => yProjector(innerDatum, innerIndex, dsPoints))
+					.interpolate("linear")(dsPoints.data());
+				console.log(line);
+				return line;
+			};
+		}
 
-		scaleX(valueIn?: any): number {
-			let xScale: Plots.AccessorScaleBinding<any, any> = this._propertyBindings.get(MarketBar.X_SCALE_KEY);
-			if (!xScale) {
-				this._bindProperty(MarketBar.X_SCALE_KEY, (d: any, i: number, ds: Dataset) => this.scaleX(d.x), new Plottable.Scales.Time());
-				xScale = this._propertyBindings.get(MarketBar.X_SCALE_KEY);
+		protected _generateDrawSteps(): Drawers.DrawStep[] {
+			let drawSteps: Drawers.DrawStep[] = [];
+			if (this._animateOnNextRender()) {
+				let attrToProjector = this._generateAttrToProjector();
+				attrToProjector["d"] = this._constructLineProjector(Plot._scaledAccessor(this.x()), Plot._scaledAccessor(this.y()));
+				drawSteps.push({ attrToProjector: attrToProjector, animator: this._getAnimator(Plots.Animator.RESET) });
 			}
-			if (valueIn) {
-				return xScale.scale.scale(valueIn);
-			}
-		}
-		mathTimeDate(hours: number, date: Date): Date {
-			let days = 0;
-			let minutes = 0;
-			let subtime = (days * 24 * 60 * 60 * 1000) +
-				(hours * 60 * 60 * 1000) +
-				(minutes * 60 * 1000);
 
-			let resultTime = new Date(date.getTime() + subtime);
-			return resultTime;
+			drawSteps.push({ attrToProjector: this._generateAttrToProjector(), animator: this._getAnimator(Plots.Animator.MAIN) });
+
+			return drawSteps;
 		}
 
-		public d(d: any, index: number, dataset: Dataset): any {
-			let path: string =
-				"M" +
-				// tick start 12h (1/2 day) to the left.
-				this.scaleX(this.mathTimeDate(-12, d.date)) + "," +
-				d.open +
-				"L" +
-				this.scaleX(d.date) + "," +
-				d.open +
-				"L" +
-				this.scaleX(d.date) + "," +
-				d.low +
-				"L" +
-				this.scaleX(d.date) + "," +
-				d.high +
-				"L" +
-				this.scaleX(d.date) + "," +
-				d.close +
-				"L" +
-				// tick start 12h (1/2 day) to the right.
-				this.scaleX(this.mathTimeDate(12, d.date)) + "," +
-				d.close;
-
-			return path;
-		}
-
-		protected pointSet(d: any, index: number, dataset: Dataset): {x: any,y: any}[] {
+		protected pointSet(d: any, index: number, dataset: Dataset): { x: any, y: any }[] {
 			let pointSet: {
 				x: any,
 				y: any
 			}[] = [
 					{
 						// tick start 12h (1/2 day) to the left.
-						x: new Date(new Date().setDate(new Date().getDate() - .5)),
+						x: new Date(d.date.setDate(d.date.getDate() - .5)),
 						y: d.open,
 					},
 					{
@@ -213,16 +98,15 @@ namespace Plottable.Plots {
 					},
 					{
 						// tick start 12h (1/2 day) to the right.
-						x: new Date(new Date().setDate(new Date().getDate() + .5)),
+						x: new Date(d.date.setDate(d.date.getDate() + .5)),
 						y: d.close,
 					}
 				];
 			for (let item of pointSet) {
-				console.log(item);
+				console.log(`pointsetprint=${item}`);
 			}
 			return pointSet;
 		}
-
 
 		/**
 		 * Returns the PlotEntity nearest to the query point by X then by Y, or undefined if no PlotEntity can be found.
@@ -251,14 +135,25 @@ namespace Plottable.Plots {
 			return closest;
 		}
 
+		/**
+		 * dayToPoints takes the datum and creates 6 points (x,y) to create a marketBar style graph
+		 * These 6 points are the PIXEL points - their actual coordinates on the graph/ scaled
+		 * [1] open,date-12h [2] open,date [3] low,date [4] high,date [5] close,date [6] close,date+12h
+		 * 
+		 * @param {any} datum | singular input from dataset that is being processed to create x,y coord
+		 * @param {number} datasetIndex | index of datum within dataset
+		 * @param {Dataset} dataset - object containing array of all data to be shown by this plot
+		 * @returns {Point[]} | an array of 6 true (x,y) coordinates, describing the bar for the day. 
+		 */
 		private dayToPoints(datum: any, datasetIndex: number, dataset: Dataset): Point[] {
-			let positions: Point[];
+			let positions: Point[] = [];
 			let datumPositions: {
 				x: any,
 				y: any
 			}[] = this.pointSet(datum, datasetIndex, dataset);
 			datumPositions.forEach(datumPosition => {
-				positions.push(this._pixelPoint(datum, datasetIndex, dataset));
+				positions.push(this._pixelPoint(datumPosition, datasetIndex, dataset));
+				console.log("pixelPoint=", positions[positions.length - 1])
 			});
 			return positions;
 		}
@@ -266,13 +161,13 @@ namespace Plottable.Plots {
 		protected _lightweightEntities(datasets = this.datasets()) {
 			let lightweightEntities: LightweightPlotEntity[] = [];
 			// @param {Dataset} dataset - is extracted from datasets
-			datasets.forEach( dataset => {
+			datasets.forEach(dataset => {
 				let drawer = this._datasetToDrawer.get(dataset);
 				let validDatumIndex = 0;
 
 				dataset.data().forEach((datum: any, datasetIndex: number) => {
 					// EDH - I've added an extra layer of lookups, mapping the 6 x points per datum / day so they are recorded as entities
-					this.dayToPoints(datum, datasetIndex, dataset).forEach( position => {
+					this.dayToPoints(datum, datasetIndex, dataset).forEach(position => {
 						if (Utils.Math.isNaN(position.x) || Utils.Math.isNaN(position.y)) {
 							return;
 						}
@@ -292,20 +187,57 @@ namespace Plottable.Plots {
 			return lightweightEntities;
 		}
 		protected _getDataToDraw() {
-			let dataToDraw: Utils.Map<Dataset, any[]> = super._getDataToDraw();
-
-			let definedFunction = (d: any, i: number, dataset: Dataset) => {
-				let positionX = Plot._scaledAccessor(this.x())(d, i, dataset);
-				let positionY = Plot._scaledAccessor(this.y())(d, i, dataset);
-				return Utils.Math.isValidNumber(positionX) &&
-					Utils.Math.isValidNumber(positionY);
-			};
-
-			this.datasets().forEach((dataset) => {
-				dataToDraw.set(dataset, dataToDraw.get(dataset).filter((d, i) => definedFunction(d, i, dataset)));
-			});
+			let dataToDraw: Utils.Map<Dataset, any[]> = new Utils.Map<Dataset, any[]>();
+			this.datasets().forEach((dataset) => dataToDraw.set(dataset, dataset.data()));
 			return dataToDraw;
 		}
+
+		protected _extentsForProperty(property: string) {
+			let extents = super._extentsForProperty(property);
+
+			/**
+			 * @var {AccessorScaleBinding<X|Y|number,Date|number>} accScaleBinding | accessor-scale to use in upcoming computations
+			 */
+			let accScaleBinding: Plots.AccessorScaleBinding<any, any>;
+			/** @var {number[]} axisVals | Array of all values that fall on the axis being queried */
+			let axisVals: number[] = [];
+			if ( property === "y" ){
+				this.datasets().forEach(dataset => {
+					[].push.apply(axisVals, dataset.data().map(function (d: any) { return d.high; }));
+					[].push.apply(axisVals, dataset.data().map(function (d: any) { return d.low; }));
+					accScaleBinding = this.y();
+				});
+			}  else if (property === "x" ) {
+				this.datasets().forEach(dataset => {
+					[].push.apply(axisVals, dataset.data().map(function (d: any) { return d.date; }));
+					accScaleBinding = this.x();
+				});
+			} else {
+				/** a non-coordinate property was requested - don't handle that here  */
+				return extents;
+			}
+
+			/** sanity and type check, ensure scale exists and is of proper type */
+			if (!(accScaleBinding && accScaleBinding.scale && accScaleBinding.scale instanceof QuantitativeScale)) {
+				return extents;
+			}
+			/** 
+			 * @var {number} minimum | the lowest (lowest close | first date) of the day in the array.
+			 */
+			let minimum: number = d3.min(axisVals);
+			/** now we take that minumum and scale it */
+			let minScaled: number = accScaleBinding.scale.scale(accScaleBinding.accessor({x: minimum, y: minimum}, 0, new Dataset()));
+			/**
+			 * @var {number} maximum | the highest (highest high | last date) of the day in the array.
+			 */
+			let maximum: number = d3.max(axisVals);
+			/** now we take that minumum and scale it */
+			let maxScaled: number = accScaleBinding.scale.scale(accScaleBinding.accessor({x: maximum, y: maximum}, 0, new Dataset()));
+			/** @var {number[x,y]} includedValues | range for scale. */
+			let includedValues: number[] = [minScaled,maxScaled];
+			return extents.map((extent: [number, number]) => d3.extent(d3.merge([extent, includedValues])));
+		}
+
 
 
 

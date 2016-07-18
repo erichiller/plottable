@@ -10069,6 +10069,8 @@ var Plottable;
     (function (Plots) {
         var MarketBar = (function (_super) {
             __extends(MarketBar, _super);
+            //static _X_KEY = "x";
+            //static _Y_KEY = "y";
             /**
              * A Market Bar Plot draws vertical lines
              * from the high of the day to the low of the day
@@ -10077,184 +10079,210 @@ var Plottable;
              */
             function MarketBar() {
                 _super.call(this);
-                this._renderMaxX = 0;
-                this._renderMaxY = 0;
                 this.addClass("marketbar-plot");
                 this.attr("stroke", new Plottable.Scales.Color().range()[0]);
                 this.attr("stroke-width", 4);
                 this.attr("fill", "none");
-                //this.TICK_WIDTH = this.scaleX(MarketBar.TICK_WIDTH_STATIC);
+                // default values
+                //this.x(function (d,index,dataset) { console.log(`from d.x(${d.x}=>`,d); return d.x; }, new Plottable.Scales.Time());
+                //this.y(function (d,index,dataset) { console.log(`from d.y(${d.y}=>`,d); return d.y; }, new Plottable.Scales.Linear());
             }
             MarketBar.prototype._createDrawer = function (dataset) {
                 return new Plottable.Drawers.Line(dataset);
             };
-            //is this per element or for the whole plot?
             MarketBar.prototype._propertyProjectors = function () {
+                var propertyToProjectors = _super.prototype._propertyProjectors.call(this);
+                propertyToProjectors["d"] = this._constructLineProjector(Plottable.Plot._scaledAccessor(this.x()), Plottable.Plot._scaledAccessor(this.y()));
+                return propertyToProjectors;
+            };
+            MarketBar.prototype._constructLineProjector = function (xProjector, yProjector) {
                 var _this = this;
-                var attrToProjector = _super.prototype._propertyProjectors.call(this);
-                attrToProjector["d"] = function (datum, index, ds) {
-                    var path = _this.d(datum, index, ds);
-                    return path;
+                return function (datum, index, dataset) {
+                    var dsPoints = new Plottable.Dataset(_this.dayToPoints(datum, index, dataset));
+                    var line = d3.svg.line()
+                        .x(function (innerDatum, innerIndex) { return xProjector(innerDatum, innerIndex, dsPoints); })
+                        .y(function (innerDatum, innerIndex) { return yProjector(innerDatum, innerIndex, dsPoints); })
+                        .interpolate("linear")(dsPoints.data());
+                    console.log(line);
+                    return line;
                 };
-                this._propertyBindings.get(MarketBar.X_SCALE_KEY).scale.range([new Date()]);
-                return attrToProjector;
             };
-            MarketBar.prototype.y = function (y, yScale) {
-                if (y == null) {
-                    return this._propertyBindings.get(MarketBar._Y_KEY);
+            MarketBar.prototype._generateDrawSteps = function () {
+                var drawSteps = [];
+                if (this._animateOnNextRender()) {
+                    var attrToProjector = this._generateAttrToProjector();
+                    attrToProjector["d"] = this._constructLineProjector(Plottable.Plot._scaledAccessor(this.x()), Plottable.Plot._scaledAccessor(this.y()));
+                    drawSteps.push({ attrToProjector: attrToProjector, animator: this._getAnimator(Plots.Animator.RESET) });
                 }
-                this._bindProperty(MarketBar._Y_KEY, y, yScale);
-                return this;
-            };
-            MarketBar.prototype.scaleX = function (valueIn) {
-                var _this = this;
-                var xScale = this._propertyBindings.get(MarketBar.X_SCALE_KEY);
-                if (!xScale) {
-                    this._bindProperty(MarketBar.X_SCALE_KEY, function (d, i, ds) { return _this.scaleX(d.x); }, new Plottable.Scales.Time());
-                    xScale = this._propertyBindings.get(MarketBar.X_SCALE_KEY);
-                }
-                if (valueIn) {
-                    return xScale.scale.scale(valueIn);
-                }
-            };
-            MarketBar.prototype.mathTimeDate = function (hours, date) {
-                var days = 0;
-                var minutes = 0;
-                var subtime = (days * 24 * 60 * 60 * 1000) +
-                    (hours * 60 * 60 * 1000) +
-                    (minutes * 60 * 1000);
-                var resultTime = new Date(date.getTime() + subtime);
-                return resultTime;
-            };
-            MarketBar.prototype.d = function (d, index, dataset) {
-                var path = "M" +
-                    // tick start 12h (1/2 day) to the left.
-                    this.scaleX(this.mathTimeDate(-12, d.date)) + "," +
-                    d.open +
-                    "L" +
-                    this.scaleX(d.date) + "," +
-                    d.open +
-                    "L" +
-                    this.scaleX(d.date) + "," +
-                    d.low +
-                    "L" +
-                    this.scaleX(d.date) + "," +
-                    d.high +
-                    "L" +
-                    this.scaleX(d.date) + "," +
-                    d.close +
-                    "L" +
-                    // tick start 12h (1/2 day) to the right.
-                    this.scaleX(this.mathTimeDate(12, d.date)) + "," +
-                    d.close;
-                return path;
+                drawSteps.push({ attrToProjector: this._generateAttrToProjector(), animator: this._getAnimator(Plots.Animator.MAIN) });
+                return drawSteps;
             };
             MarketBar.prototype.pointSet = function (d, index, dataset) {
                 var pointSet = [
                     {
                         // tick start 12h (1/2 day) to the left.
-                        x: new Date(new Date().setDate(new Date().getDate() - .5)),
-                        y: d.open
+                        x: new Date(d.date.setDate(d.date.getDate() - .5)),
+                        y: d.open,
                     },
                     {
                         x: d.date,
-                        y: d.open
+                        y: d.open,
                     },
                     {
                         x: d.date,
-                        y: d.low
+                        y: d.low,
                     },
                     {
                         x: d.date,
-                        y: d.high
+                        y: d.high,
                     },
                     {
                         x: d.date,
-                        y: d.close
+                        y: d.close,
                     },
                     {
                         // tick start 12h (1/2 day) to the right.
-                        x: new Date(new Date().setDate(new Date().getDate() + .5)),
-                        y: d.close
+                        x: new Date(d.date.setDate(d.date.getDate() + .5)),
+                        y: d.close,
                     }
                 ];
                 for (var _i = 0, pointSet_1 = pointSet; _i < pointSet_1.length; _i++) {
                     var item = pointSet_1[_i];
-                    console.log(item);
+                    console.log("pointsetprint=" + item);
                 }
                 return pointSet;
             };
-            MarketBar.prototype.entitiesIn = function (xRangeOrBounds, yRange) {
-                var dataXRange;
-                var dataYRange;
-                if (yRange == null) {
-                    var bounds = xRangeOrBounds;
-                    dataXRange = { min: bounds.topLeft.x, max: bounds.bottomRight.x };
-                    dataYRange = { min: bounds.topLeft.y, max: bounds.bottomRight.y };
+            /**
+             * Returns the PlotEntity nearest to the query point by X then by Y, or undefined if no PlotEntity can be found.
+             *
+             * @param {Point} queryPoint
+             * @returns {PlotEntity} The nearest PlotEntity, or undefined if no PlotEntity can be found.
+             */
+            MarketBar.prototype.entityNearestByXThenY = function (queryPoint) {
+                var _this = this;
+                var minXDist = Infinity;
+                var minYDist = Infinity;
+                var closest;
+                this.entities().forEach(function (entity) {
+                    if (!_this._entityVisibleOnPlot(entity.position, entity.datum, entity.index, entity.dataset)) {
+                        return;
+                    }
+                    var xDist = Math.abs(queryPoint.x - entity.position.x);
+                    var yDist = Math.abs(queryPoint.y - entity.position.y);
+                    if (xDist < minXDist || xDist === minXDist && yDist < minYDist) {
+                        closest = entity;
+                        minXDist = xDist;
+                        minYDist = yDist;
+                    }
+                });
+                return closest;
+            };
+            /**
+             * dayToPoints takes the datum and creates 6 points (x,y) to create a marketBar style graph
+             * These 6 points are the PIXEL points - their actual coordinates on the graph/ scaled
+             * [1] open,date-12h [2] open,date [3] low,date [4] high,date [5] close,date [6] close,date+12h
+             *
+             * @param {any} datum | singular input from dataset that is being processed to create x,y coord
+             * @param {number} datasetIndex | index of datum within dataset
+             * @param {Dataset} dataset - object containing array of all data to be shown by this plot
+             * @returns {Point[]} | an array of 6 true (x,y) coordinates, describing the bar for the day.
+             */
+            MarketBar.prototype.dayToPoints = function (datum, datasetIndex, dataset) {
+                var _this = this;
+                var positions = [];
+                var datumPositions = this.pointSet(datum, datasetIndex, dataset);
+                datumPositions.forEach(function (datumPosition) {
+                    positions.push(_this._pixelPoint(datumPosition, datasetIndex, dataset));
+                    console.log("pixelPoint=", positions[positions.length - 1]);
+                });
+                return positions;
+            };
+            MarketBar.prototype._lightweightEntities = function (datasets) {
+                var _this = this;
+                if (datasets === void 0) { datasets = this.datasets(); }
+                var lightweightEntities = [];
+                // @param {Dataset} dataset - is extracted from datasets
+                datasets.forEach(function (dataset) {
+                    var drawer = _this._datasetToDrawer.get(dataset);
+                    var validDatumIndex = 0;
+                    dataset.data().forEach(function (datum, datasetIndex) {
+                        // EDH - I've added an extra layer of lookups, mapping the 6 x points per datum / day so they are recorded as entities
+                        _this.dayToPoints(datum, datasetIndex, dataset).forEach(function (position) {
+                            if (Plottable.Utils.Math.isNaN(position.x) || Plottable.Utils.Math.isNaN(position.y)) {
+                                return;
+                            }
+                            lightweightEntities.push({
+                                datum: datum,
+                                index: datasetIndex,
+                                dataset: dataset,
+                                position: position,
+                                component: _this,
+                                drawer: drawer,
+                                validDatumIndex: validDatumIndex,
+                            });
+                            validDatumIndex++;
+                        });
+                    });
+                });
+                return lightweightEntities;
+            };
+            MarketBar.prototype._getDataToDraw = function () {
+                var dataToDraw = new Plottable.Utils.Map();
+                this.datasets().forEach(function (dataset) { return dataToDraw.set(dataset, dataset.data()); });
+                return dataToDraw;
+            };
+            MarketBar.prototype._extentsForProperty = function (property) {
+                var _this = this;
+                var extents = _super.prototype._extentsForProperty.call(this, property);
+                /**
+                 * @var {AccessorScaleBinding<X|Y|number,Date|number>} accScaleBinding | accessor-scale to use in upcoming computations
+                 */
+                var accScaleBinding;
+                /** @var {number[]} axisVals | Array of all values that fall on the axis being queried */
+                var axisVals = [];
+                if (property === "y") {
+                    this.datasets().forEach(function (dataset) {
+                        [].push.apply(axisVals, dataset.data().map(function (d) { return d.high; }));
+                        [].push.apply(axisVals, dataset.data().map(function (d) { return d.low; }));
+                        accScaleBinding = _this.y();
+                    });
+                }
+                else if (property === "x") {
+                    this.datasets().forEach(function (dataset) {
+                        [].push.apply(axisVals, dataset.data().map(function (d) { return d.date; }));
+                        accScaleBinding = _this.x();
+                    });
                 }
                 else {
-                    dataXRange = xRangeOrBounds;
-                    dataYRange = yRange;
+                    /** a non-coordinate property was requested - don't handle that here  */
+                    return extents;
                 }
-                return this._entitiesIntersecting(dataXRange, dataYRange);
-            };
-            MarketBar.prototype._entitiesIntersecting = function (xRange, yRange) {
-                var _this = this;
-                var intersected = [];
-                var attrToProjector = this._generateAttrToProjector();
-                this.entities().forEach(function (entity) {
-                    if (_this._lineIntersectsBox(entity, xRange, yRange, attrToProjector)) {
-                        intersected.push(entity);
-                    }
-                });
-                return intersected;
-            };
-            MarketBar.prototype._lineIntersectsBox = function (entity, xRange, yRange, attrToProjector) {
-                var _this = this;
-                var x1 = attrToProjector["x1"](entity.datum, entity.index, entity.dataset);
-                var x2 = attrToProjector["x2"](entity.datum, entity.index, entity.dataset);
-                var y1 = attrToProjector["y1"](entity.datum, entity.index, entity.dataset);
-                var y2 = attrToProjector["y2"](entity.datum, entity.index, entity.dataset);
-                // check if any of end points of the segment is inside the box
-                if ((xRange.min <= x1 && x1 <= xRange.max && yRange.min <= y1 && y1 <= yRange.max) ||
-                    (xRange.min <= x2 && x2 <= xRange.max && yRange.min <= y2 && y2 <= yRange.max)) {
-                    return true;
+                /** sanity and type check, ensure scale exists and is of proper type */
+                if (!(accScaleBinding && accScaleBinding.scale && accScaleBinding.scale instanceof Plottable.QuantitativeScale)) {
+                    return extents;
                 }
-                var startPoint = { x: x1, y: y1 };
-                var endPoint = { x: x2, y: y2 };
-                var corners = [
-                    { x: xRange.min, y: yRange.min },
-                    { x: xRange.min, y: yRange.max },
-                    { x: xRange.max, y: yRange.max },
-                    { x: xRange.max, y: yRange.min },
-                ];
-                var intersections = corners.filter(function (point, index) {
-                    if (index !== 0) {
-                        // return true if border formed by conecting current corner and previous corner intersects with the segment
-                        return _this._lineIntersectsSegment(startPoint, endPoint, point, corners[index - 1]) &&
-                            _this._lineIntersectsSegment(point, corners[index - 1], startPoint, endPoint);
-                    }
-                    return;
-                });
-                return intersections.length > 0;
-            };
-            MarketBar.prototype._lineIntersectsSegment = function (point1, point2, point3, point4) {
-                /* tslint:disable no-shadowed-variable */
-                var calcOrientation = function (point1, point2, point) {
-                    return (point2.x - point1.x) * (point.y - point2.y) - (point2.y - point1.y) * (point.x - point2.x);
-                };
-                /* tslint:enable no-shadowed-variable */
-                // point3 and point4 are on different sides of line formed by point1 and point2
-                return calcOrientation(point1, point2, point3) * calcOrientation(point1, point2, point4) < 0;
+                /**
+                 * @var {number} minimum | the lowest (lowest close | first date) of the day in the array.
+                 */
+                var minimum = d3.min(axisVals);
+                /** now we take that minumum and scale it */
+                var minScaled = accScaleBinding.scale.scale(accScaleBinding.accessor({ x: minimum, y: minimum }, 0, new Plottable.Dataset()));
+                /**
+                 * @var {number} maximum | the highest (highest high | last date) of the day in the array.
+                 */
+                var maximum = d3.max(axisVals);
+                /** now we take that minumum and scale it */
+                var maxScaled = accScaleBinding.scale.scale(accScaleBinding.accessor({ x: maximum, y: maximum }, 0, new Plottable.Dataset()));
+                /** @var {number[x,y]} includedValues | range for scale. */
+                var includedValues = [minScaled, maxScaled];
+                return extents.map(function (extent) { return d3.extent(d3.merge([extent, includedValues])); });
             };
             /** pixel size - width/length of ticks off main bar for open/close of day */
             //private TICK_WIDTH;
             MarketBar.X_SCALE_KEY = "xscale";
             MarketBar.Y_SCALE_KEY = "yscale";
-            MarketBar._X_KEY = "x";
-            MarketBar._Y_KEY = "y";
             return MarketBar;
-        }(Plottable.Plot));
+        }(Plottable.XYPlot));
         Plots.MarketBar = MarketBar;
     })(Plots = Plottable.Plots || (Plottable.Plots = {}));
 })(Plottable || (Plottable = {}));

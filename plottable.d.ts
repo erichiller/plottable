@@ -538,6 +538,20 @@ declare namespace Plottable {
         selection: d3.Selection<any>;
         component: C;
     }
+    /**
+     * Computing the selection of an entity is an expensive operation. This object aims to
+     * reproduce the behavior of the Plots.PlotEntity, excluding the selection, but including
+     * drawer and validDatumIndex, which can be used to compute the selection.
+     */
+    interface LightweightPlotEntity {
+        datum: any;
+        position: Point;
+        dataset: Dataset;
+        index: number;
+        component: Plot;
+        drawer: Plottable.Drawer;
+        validDatumIndex: number;
+    }
 }
 declare namespace Plottable {
     type Formatter = (d: any) => string;
@@ -2753,7 +2767,7 @@ declare namespace Plottable {
     class Plot extends Component {
         protected static _ANIMATION_MAX_DURATION: number;
         private _dataChanged;
-        private _datasetToDrawer;
+        protected _datasetToDrawer: Utils.Map<Dataset, Drawer>;
         protected _renderArea: d3.Selection<void>;
         private _attrBindings;
         private _attrExtents;
@@ -2886,7 +2900,7 @@ declare namespace Plottable {
          * @return {Plots.PlotEntity[]}
          */
         entities(datasets?: Dataset[]): Plots.PlotEntity[];
-        private _lightweightEntities(datasets?);
+        protected _lightweightEntities(datasets?: Dataset[]): LightweightPlotEntity[];
         private _lightweightPlotEntityToPlotEntity(entity);
         /**
          * Returns the PlotEntity nearest to the query point by the Euclidian norm, or undefined if no PlotEntity can be found.
@@ -3915,24 +3929,10 @@ declare namespace Plottable.Plots {
     }
 }
 declare namespace Plottable.Plots {
-    class MarketBar<X, Y> extends Plot {
+    class MarketBar<X, Y> extends XYPlot<Date, number> {
         /** pixel size - width/length of ticks off main bar for open/close of day */
         static X_SCALE_KEY: string;
         static Y_SCALE_KEY: string;
-        static _X_KEY: string;
-        static _Y_KEY: string;
-        _renderBounds: {
-            x: {
-                min: number;
-                max: number;
-            };
-            y: {
-                min: number;
-                max: number;
-            };
-        };
-        _renderMaxX: number;
-        _renderMaxY: number;
         /**
          * A Market Bar Plot draws vertical lines
          * from the high of the day to the low of the day
@@ -3942,96 +3942,33 @@ declare namespace Plottable.Plots {
         constructor();
         protected _createDrawer(dataset: Dataset): Drawers.Line;
         protected _propertyProjectors(): AttributeToProjector;
+        protected _constructLineProjector(xProjector: Projector, yProjector: Projector): (datum: any, index: number, dataset: Dataset) => string;
+        protected _generateDrawSteps(): Drawers.DrawStep[];
+        protected pointSet(d: any, index: number, dataset: Dataset): {
+            x: any;
+            y: any;
+        }[];
         /**
-                protected _constructAreaProjector(xProjector: Projector, yProjector: Projector) {
-                    let definedProjector = (d: any, i: number, dataset: Dataset) => {
-                        let positionX = Plot._scaledAccessor(this.x())(d, i, dataset);
-                        let positionY = Plot._scaledAccessor(this.y())(d, i, dataset);
-                        return Utils.Math.isValidNumber(positionX) && Utils.Math.isValidNumber(positionY);
-                    };
-                    return (datum: any[], index: number, dataset: Dataset) => {
-                        return d3.svg.line()
-                            .x((innerDatum, innerIndex) => xProjector(innerDatum, innerIndex, dataset))
-                            .y((innerDatum, innerIndex) => yProjector(innerDatum, innerIndex, dataset))
-                            .interpolate("linear")
-                            .defined((innerDatum, innerIndex) => definedProjector(innerDatum, innerIndex, dataset))(datum);
-                    };
-                }
-        **/
-        /**
- * Gets the AccessorScaleBinding for X.
- */
-        /**
-         * Sets X to a constant number or the result of an Accessor<number>.
+         * Returns the PlotEntity nearest to the query point by X then by Y, or undefined if no PlotEntity can be found.
          *
-         * @param {number|Accessor<number>} x
-         * @returns {XYPlot} The calling XYPlot.
+         * @param {Point} queryPoint
+         * @returns {PlotEntity} The nearest PlotEntity, or undefined if no PlotEntity can be found.
          */
+        entityNearestByXThenY(queryPoint: Point): PlotEntity;
         /**
-         * Sets X to a scaled constant value or scaled result of an Accessor.
-         * The provided Scale will account for the values when autoDomain()-ing.
+         * dayToPoints takes the datum and creates 6 points (x,y) to create a marketBar style graph
+         * These 6 points are the PIXEL points - their actual coordinates on the graph/ scaled
+         * [1] open,date-12h [2] open,date [3] low,date [4] high,date [5] close,date [6] close,date+12h
          *
-         * @param {X|Accessor<X>} x
-         * @param {Scale<X, number>} xScale
-         * @returns {XYPlot} The calling XYPlot.
+         * @param {any} datum | singular input from dataset that is being processed to create x,y coord
+         * @param {number} datasetIndex | index of datum within dataset
+         * @param {Dataset} dataset - object containing array of all data to be shown by this plot
+         * @returns {Point[]} | an array of 6 true (x,y) coordinates, describing the bar for the day.
          */
-        /**
-          public x(x: X | Accessor<X>, xScale: Scale<X, number>): this;
-          public x(x?: number | Accessor<number> | X | Accessor<X>, xScale?: Scale<X, number>): any {
-            if (!xScale) {
-                this._bindProperty(MarketBar.X_SCALE_KEY, (d: any, i: number, ds: Dataset) =>
-                    function(d: any, i: any, ds: Dataset): number {
-                        
-                    }, new Plottable.Scales.Time())  ;
-                xScale = this._propertyBindings.get(MarketBar.X_SCALE_KEY);
-            }
-            this._bindProperty(MarketBar._X_KEY, x, xScale);
-        
-            return this;
-          }
-          **/
-        /**
-         * Gets the AccessorScaleBinding for Y.
-         */
-        y(): Plots.AccessorScaleBinding<Y, number>;
-        /**
-         * Sets Y to a constant number or the result of an Accessor<number>.
-         *
-         * @param {number|Accessor<number>} y
-         * @returns {XYPlot} The calling XYPlot.
-         */
-        y(y: number | Accessor<number>): this;
-        /**
-         * Sets Y to a scaled constant value or scaled result of an Accessor.
-         * The provided Scale will account for the values when autoDomain()-ing.
-         *
-         * @param {Y|Accessor<Y>} y
-         * @param {Scale<Y, number>} yScale
-         * @returns {XYPlot} The calling XYPlot.
-         */
-        y(y: Y | Accessor<Y>, yScale: Scale<Y, number>): this;
-        scaleX(valueIn?: any): number;
-        mathTimeDate(hours: number, date: Date): Date;
-        d(d: any, index: number, dataset: Dataset): any;
-        pointSet(d: any, index: number, dataset: Dataset): any;
-        /**
-         * Gets the Entities that intersect the Bounds.
-         *
-         * @param {Bounds} bounds
-         * @returns {PlotEntity[]}
-         */
-        entitiesIn(bounds: Bounds): PlotEntity[];
-        /**
-         * Gets the Entities that intersect the area defined by the ranges.
-         *
-         * @param {Range} xRange
-         * @param {Range} yRange
-         * @returns {PlotEntity[]}
-         */
-        entitiesIn(xRange: Range, yRange: Range): PlotEntity[];
-        private _entitiesIntersecting(xRange, yRange);
-        private _lineIntersectsBox(entity, xRange, yRange, attrToProjector);
-        private _lineIntersectsSegment(point1, point2, point3, point4);
+        private dayToPoints(datum, datasetIndex, dataset);
+        protected _lightweightEntities(datasets?: Dataset[]): LightweightPlotEntity[];
+        protected _getDataToDraw(): Utils.Map<Dataset, any[]>;
+        protected _extentsForProperty(property: string): any[];
     }
 }
 declare namespace Plottable {
