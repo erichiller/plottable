@@ -145,17 +145,21 @@ namespace Plottable.Plots {
 		 * @param {Dataset} dataset - object containing array of all data to be shown by this plot
 		 * @returns {Point[]} | an array of 6 true (x,y) coordinates, describing the bar for the day. 
 		 */
-		private dayToPoints(datum: any, datasetIndex: number, dataset: Dataset): Point[] {
+//		private dayToPoints(datum: any, datasetIndex: number, dataset: Dataset): Point[] {
+		private dayToPoints(datum: any, datasetIndex: number, dataset: Dataset): {x:any,y:any}[] {
 			let positions: Point[] = [];
 			let datumPositions: {
 				x: any,
 				y: any
 			}[] = this.pointSet(datum, datasetIndex, dataset);
+			return datumPositions;
+			/** 
 			datumPositions.forEach(datumPosition => {
 				positions.push(this._pixelPoint(datumPosition, datasetIndex, dataset));
 				console.log("pixelPoint=", positions[positions.length - 1])
 			});
 			return positions;
+			*/			
 		}
 
 		protected _lightweightEntities(datasets = this.datasets()) {
@@ -224,17 +228,18 @@ namespace Plottable.Plots {
 			/** 
 			 * @var {number} minimum | the lowest (lowest close | first date) of the day in the array.
 			 */
-			let minimum: number = d3.min(axisVals);
+			let minimum: any = d3.min(axisVals);
 			/** now we take that minumum and scale it */
 			let minScaled: number = accScaleBinding.scale.scale(accScaleBinding.accessor({x: minimum, y: minimum}, 0, new Dataset()));
 			/**
 			 * @var {number} maximum | the highest (highest high | last date) of the day in the array.
 			 */
-			let maximum: number = d3.max(axisVals);
+			let maximum: any = d3.max(axisVals);
 			/** now we take that minumum and scale it */
 			let maxScaled: number = accScaleBinding.scale.scale(accScaleBinding.accessor({x: maximum, y: maximum}, 0, new Dataset()));
 			/** @var {number[x,y]} includedValues | range for scale. */
-			let includedValues: number[] = [minScaled,maxScaled];
+//			let includedValues: number[] = [minScaled,maxScaled];
+			let includedValues: number[] = [minimum,maximum];
 			return extents.map((extent: [number, number]) => d3.extent(d3.merge([extent, includedValues])));
 		}
 

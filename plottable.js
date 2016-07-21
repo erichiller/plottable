@@ -10187,15 +10187,18 @@ var Plottable;
              * @param {Dataset} dataset - object containing array of all data to be shown by this plot
              * @returns {Point[]} | an array of 6 true (x,y) coordinates, describing the bar for the day.
              */
+            //		private dayToPoints(datum: any, datasetIndex: number, dataset: Dataset): Point[] {
             MarketBar.prototype.dayToPoints = function (datum, datasetIndex, dataset) {
-                var _this = this;
                 var positions = [];
                 var datumPositions = this.pointSet(datum, datasetIndex, dataset);
-                datumPositions.forEach(function (datumPosition) {
-                    positions.push(_this._pixelPoint(datumPosition, datasetIndex, dataset));
-                    console.log("pixelPoint=", positions[positions.length - 1]);
+                return datumPositions;
+                /**
+                datumPositions.forEach(datumPosition => {
+                    positions.push(this._pixelPoint(datumPosition, datasetIndex, dataset));
+                    console.log("pixelPoint=", positions[positions.length - 1])
                 });
                 return positions;
+                */
             };
             MarketBar.prototype._lightweightEntities = function (datasets) {
                 var _this = this;
@@ -10274,7 +10277,8 @@ var Plottable;
                 /** now we take that minumum and scale it */
                 var maxScaled = accScaleBinding.scale.scale(accScaleBinding.accessor({ x: maximum, y: maximum }, 0, new Plottable.Dataset()));
                 /** @var {number[x,y]} includedValues | range for scale. */
-                var includedValues = [minScaled, maxScaled];
+                //			let includedValues: number[] = [minScaled,maxScaled];
+                var includedValues = [minimum, maximum];
                 return extents.map(function (extent) { return d3.extent(d3.merge([extent, includedValues])); });
             };
             /** pixel size - width/length of ticks off main bar for open/close of day */
