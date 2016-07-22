@@ -136,8 +136,7 @@ namespace Plottable.Plots {
 		}
 
 		/**
-		 * dayToPoints takes the datum and creates 6 points (x,y) to create a marketBar style graph
-		 * These 6 points are the PIXEL points - their actual coordinates on the graph/ scaled
+		 * dayToPoints takes the datum and creates 6 points (x,y) of subdata, these are NOT coordinates
 		 * [1] open,date-12h [2] open,date [3] low,date [4] high,date [5] close,date [6] close,date+12h
 		 * 
 		 * @param {any} datum | singular input from dataset that is being processed to create x,y coord
@@ -146,8 +145,8 @@ namespace Plottable.Plots {
 		 * @returns {Point[]} | an array of 6 true (x,y) coordinates, describing the bar for the day. 
 		 */
 //		private dayToPoints(datum: any, datasetIndex: number, dataset: Dataset): Point[] {
-		private dayToPoints(datum: any, datasetIndex: number, dataset: Dataset): {x:any,y:any}[] {
-			let positions: Point[] = [];
+		private dayToPoints(datum: any, datasetIndex: number, dataset: Dataset): {x: any, y: any}[] {
+			//let positions: Point[] = [];
 			let datumPositions: {
 				x: any,
 				y: any
@@ -172,6 +171,7 @@ namespace Plottable.Plots {
 				dataset.data().forEach((datum: any, datasetIndex: number) => {
 					// EDH - I've added an extra layer of lookups, mapping the 6 x points per datum / day so they are recorded as entities
 					this.dayToPoints(datum, datasetIndex, dataset).forEach(position => {
+						position = this._pixelPoint(position, datasetIndex, dataset);
 						if (Utils.Math.isNaN(position.x) || Utils.Math.isNaN(position.y)) {
 							return;
 						}

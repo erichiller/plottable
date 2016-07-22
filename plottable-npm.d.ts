@@ -3957,8 +3957,7 @@ declare namespace Plottable.Plots {
          */
         entityNearestByXThenY(queryPoint: Point): PlotEntity;
         /**
-         * dayToPoints takes the datum and creates 6 points (x,y) to create a marketBar style graph
-         * These 6 points are the PIXEL points - their actual coordinates on the graph/ scaled
+         * dayToPoints takes the datum and creates 6 points (x,y) of subdata, these are NOT coordinates
          * [1] open,date-12h [2] open,date [3] low,date [4] high,date [5] close,date [6] close,date+12h
          *
          * @param {any} datum | singular input from dataset that is being processed to create x,y coord
